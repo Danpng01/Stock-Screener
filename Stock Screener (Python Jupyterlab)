@@ -1,0 +1,83 @@
+# Code performs (1) intrinsic value calculation on stock_list (2) presents key financial ratios and data in a table (3) plots a graph of the Net Income, Revenue and
+Free Cash Flow over time, and (4) shows the price history of the stocks together with a 50 and 200 Simple Moving Average plotted on it.
+#pip install yfinance
+#pip install mplfinance
+
+#initialising
+#%matplotlib inline
+import yfinance as yf
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import mplfinance as mpf
+import seaborn as sns
+
+stock_list = ['msft','amzn','goog','aapl','etsy','nvda','xom','c','qyld','dbs','ns','epr','brmk']
+msft = yf.Ticker('msft')
+amzn = yf.Ticker('amzn')
+goog = yf.Ticker('goog')
+aapl=yf.Ticker('aapl')
+etsy = yf.Ticker('etsy')
+nvda=yf.Ticker('nvda')
+xom=yf.Ticker('xom')
+c=yf.Ticker('c')
+qyld=yf.Ticker('qyld')
+dbs=yf.Ticker('D05.SI')
+ns=yf.Ticker('NS8U.SI')
+epr = yf.Ticker('epr')
+brmk = yf.Ticker('brmk')
+
+#price
+for x in stock_list:
+    mpf.plot(yf.Ticker(x).history(period='2y',interval='1d'), type = 'candle', mav = ( 50,200), volume=True, title = f"Price of {x}", style="yahoo") 
+
+#financial ratios, quick ratio must be greater than 1, d/e less the better
+metric = ['Marketcap','debtToEquity','quickRatio','returnOnAssets','returnOnEquity','grossMargins','operatingMargins','profitMargins','dividendYield','beta']
+
+df=pd.DataFrame( index=metric, columns =stock_list)
+for y in stock_list:
+    df.loc['Marketcap'][y]=eval(y+".fast_info['market_cap']")
+for x in metric[1:]:
+    for y in stock_list:
+        try:
+            df.loc[x][y]=eval(y+".info['"+x+"']")
+        except:
+            pass
+
+#comparison chart
+try: 
+    df11 = pd.concat([eval(x+".cashflow.loc['Net Income From Continuing Operations']") for x in stock_list], axis = 1)
+    df11.columns=stock_list
+    sns.lineplot( data = df11,dashes= False).set(title='Net Income')
+    plt.xticks(rotation=45)
+    plt.show()
+except:
+    print('could not show net income')
+
+try:
+    df12 = pd.concat([eval(x+".financials.loc['Total Revenue']") for x in stock_list], axis = 1)
+    df12.columns=stock_list
+    sns.lineplot( data = df12,dashes= False).set(title='Total Revenue')
+    plt.xticks(rotation=45)
+    plt.show()
+except:
+    print('could not show Total Revenue')
+
+try:
+    df13 = pd.concat([eval(x+".cashflow.loc['Free Cash Flow']") for x in stock_list], axis = 1)
+    df13.columns=stock_list
+    sns.lineplot( data = df13,dashes= False).set(title='Free Cash Flow')
+    plt.xticks(rotation=45)
+    plt.show()
+except:
+    print('could not show Free Cash Flow')
+
+#table
+df
+
+#corr matrix 
+df14 = pd.concat([eval(x+".history(period='2y',interval='1d')['Close']") for x in stock_list], axis = 1)
+df14.columns=stock_list
+corr= df14.corr()
+matrix = np.triu(corr)
+sns.heatmap(corr, annot=True, mask=matrix)
